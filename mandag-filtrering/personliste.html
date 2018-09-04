@@ -1,75 +1,157 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <title>Hent JSON</title>
     <style>
-        body{
-            background-color:rgb(240,240,240);
+        body {
+            background-color: rgb(240, 240, 240);
+            text-align: center;
+            margin: 0;
         }
-        article{
+
+        img {
+            width: 100%;
+        }
+
+        article {
             padding: 1em;
-            background-color:white;
+            background-color: white;
         }
-        .data-container article img{
-            width:100%;
+
+        .data-container article img {
+            width: 100%;
         }
-        .data-container{
+
+        .data-container {
             margin: 0 auto;
-            display:grid;
+            display: grid;
         }
-       @media screen and (min-width:580px){
-            .data-container{
-                padding-left:10%;
-                padding-right:10%;
+
+        @media screen and (min-width:580px) {
+            .data-container {
+                padding-left: 10%;
+                padding-right: 10%;
                 grid-gap: 5px;
                 grid-template-columns: repeat(3, 1fr);
             }
         }
 
+        #modal {
+            width: 100vw;
+            height: 100vh;
+            position: fixed;
+            background-color: rgba(0, 0, 0, .7);
+            display: none;
+        }
 
+        #modal.vis {
+            display: block;
+        }
+
+        #modal-content {
+            width: 70vw;
+            height: 70vh;
+            background-color: rgba(250, 250, 250, 1);
+            margin: auto;
+        }
     </style>
 </head>
-<body>
-    <main class="container">
-       <section class="data-container"></section>
-    </main>
-   <template class="data-template">
-      <article class="person">
-          <h2></h2>
-          <img src="" alt=""><br>
-          mail: <a class="data-mail" href=""></a><br>
-          github: <span class="data-github"></span><br>
-          tlf: <span class="data-tlf"></span><br>
-      </article>
-   </template>
 
-   <script>
-       let personer;
+<body>
+
+    <section id="modal">
+        <button>Close</button>
+        <div id="modal-content">
+            <h2 class="modal-navn"></h2>
+            <img class="modal-billede" src="" alt="">
+        </div>
+    </section>
+
+    <header>
+        <h1></h1>
+        <nav>
+            <button class="menu-item" data-civilstatus="alle">Alle personer</button>
+            <button class="menu-item" data-civilstatus="single">Singler</button>
+            <button class="menu-item" data-civilstatus="optaget">Optaget</button>
+            <button class="sort" data-sort="alder">Efter alder</button>
+            <button class="sort" data-sort="navn">Efter navn</button>
+        </nav>
+    </header>
+    <main class="container">
+        <section class="data-container"></section>
+    </main>
+    <template class="data-template">
+        <article class="person">
+            <h2></h2>
+            <img src="" alt=""><br>
+            status: <a class="data-civilstatus" href=""></a><br>
+        </article>
+    </template>
+
+    <script>
+        let dest = document.querySelector(".data-container"),
+            personer,
+            civilFilter = "alle"; // filter-variabel
+        sort = "navn";
         document.addEventListener("DOMContentLoaded", hentJson);
 
-        async function hentJson(){
+        async function hentJson() {
             let myJson = await fetch("personliste.json");
             personer = await myJson.json();
+            personer.sort((a, b) => {
+                return a.navn.localeCompare(b.navn)
+            });
             visPersoner();
         }
-       function visPersoner(){
-           let dest = document.querySelector(".data-container"),
-           temp = document.querySelector(".data-template");
-           //løb personlisten igennem og lav en klon
-           personer.forEach( person => {
-                let klon = temp.cloneNode(true).content;
-                //indsæt data i klonen
-                klon.querySelector("h2").textContent = person.navn;
-                klon.querySelector("img").src = person.billede;
-                klon.querySelector(".data-github").textContent = person.github;
-                klon.querySelector(".data-tlf").textContent = person.tlf;
-                klon.querySelector(".data-mail").textContent = person.mail;
-                klon.querySelector(".data-mail").href = "mailto:" + person.mail;
-                //placer klon i DOM
-                dest.appendChild(klon);
-           } )
-       }
+
+        document.querySelectorAll(".menu-item").forEach(knap => {
+            knap.addEventListener("click", filtrering)
+        });
+
+        function filtrering() {
+            dest.textContent = "";
+            civilFilter = this.getAttribute("data-civilstatus");
+            visPersoner();
+        }
+
+
+
+        function visPersoner() {
+            let dest = document.querySelector(".data-container"),
+                temp = document.querySelector(".data-template");
+            document.querySelector("header h1").textContent = civilFilter;
+            //løb personlisten igennem og lav en klon
+            personer.forEach(person => {
+                if (person.civilstatus == civilFilter || civilFilter == "alle") {
+                    let klon = temp.cloneNode(true).content;
+                    //indsæt data i klonen
+                    klon.querySelector("h2").textContent = person.navn;
+                    klon.querySelector("img").src = person.billede;
+                    klon.querySelector("img").addEventListener("click", () => {
+                        visModal(person);
+                    });
+                    klon.querySelector(".data-civilstatus").textContent = person.civilstatus;
+                    //placer klon i DOM
+                    dest.appendChild(klon);
+                }
+            })
+        }
+
+        function visModal(personen) {
+            let modal = document.querySelector("#modal")
+            modal.classList.add("vis");
+            modal.querySelector(".modal-navn").textContent = personen.navn;
+            modal.querySelector(".modal-billede").src = personen.billede;
+            modal.querySelector(".modal-billede").alt = "Foto af " + personen.navn;
+            modal.querySelector("button").addEventListener("click", skjulModal);
+        }
+
+        function skjulModal() {
+            modal.classList.remove("vis");
+        }
     </script>
 </body>
+
 </html>
